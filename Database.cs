@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Mirror;
@@ -26,7 +26,7 @@ public partial class Database : MonoBehaviour
     public string userID = "root"; // should never be root in production
     public string password = "password"; // should never be hardcoded in production (even through the editor)
     // keep databaseName case insensitive, some dbs support case others don't so its better to assum no case
-    public const string databaseName = "ummorpg"; // doesn't need to exist, schema will be generated
+    public const string databaseName = "ummorpg2d"; // doesn't need to exist, schema will be generated
     /* SSL mode options
      * Preferred - (this is the default). Use SSL if the server supports it.
      * None - Do not use SSL.
@@ -34,7 +34,7 @@ public partial class Database : MonoBehaviour
      * VerifyCA - Always use SSL. Validates the CA but tolerates hostname mismatch.
      * VerifyFull - Always use SSL. Validates CA and hostname.
      */
-    public MySqlSSLMode sslMode = MySqlSSLMode.None;
+    public MySqlSSLMode sslMode = MySqlSSLMode.Preferred;
     
 
     [Header("Events")]
@@ -204,7 +204,6 @@ public partial class Database : MonoBehaviour
                 if (ScriptableItem.All.TryGetValue(row.name.GetStableHashCode(), out ScriptableItem itemData))
                 {
                     Item item = new Item(itemData);
-                    item.durability = Mathf.Min(row.durability, item.maxDurability);
                     item.summonedHealth = row.summonedHealth;
                     item.summonedLevel = row.summonedLevel;
                     item.summonedExperience = row.summonedExperience;
@@ -231,7 +230,6 @@ public partial class Database : MonoBehaviour
                 if (ScriptableItem.All.TryGetValue(row.name.GetStableHashCode(), out ScriptableItem itemData))
                 {
                     Item item = new Item(itemData);
-                    item.durability = Mathf.Min(row.durability, item.maxDurability);
                     item.summonedHealth = row.summonedHealth;
                     item.summonedLevel = row.summonedLevel;
                     item.summonedExperience = row.summonedExperience;
@@ -373,14 +371,13 @@ public partial class Database : MonoBehaviour
                 player.name = row.name;
                 player.account = row.account;
                 player.className = row.classname;
-                Vector3 position = new Vector3(row.x, row.y, row.z);
+                Vector2 position = new Vector2(row.x, row.y);
                 player.level.current = Mathf.Min(row.level, player.level.max); // limit to max level in case we changed it
                 player.strength.value = row.strength;
                 player.intelligence.value = row.intelligence;
                 player.experience.current = row.experience;
                 ((PlayerSkills)player.skills).skillExperience = row.skillExperience;
                 player.gold = row.gold;
-                player.isGameMaster = row.gamemaster;
                 player.itemMall.coins = row.coins;
 
                 // can the player's movement type spawn on the saved position?
@@ -454,7 +451,6 @@ public partial class Database : MonoBehaviour
                     slot = i,
                     name = slot.item.name,
                     amount = slot.amount,
-                    durability = slot.item.durability,
                     summonedHealth = slot.item.summonedHealth,
                     summonedLevel = slot.item.summonedLevel,
                     summonedExperience = slot.item.summonedExperience
@@ -479,7 +475,6 @@ public partial class Database : MonoBehaviour
                     slot = i,
                     name = slot.item.name,
                     amount = slot.amount,
-                    durability = slot.item.durability,
                     summonedHealth = slot.item.summonedHealth,
                     summonedLevel = slot.item.summonedLevel,
                     summonedExperience = slot.item.summonedExperience
@@ -586,7 +581,6 @@ public partial class Database : MonoBehaviour
             classname = player.className,
             x = player.transform.position.x,
             y = player.transform.position.y,
-            z = player.transform.position.z,
             level = player.level.current,
             health = player.health.current,
             mana = player.mana.current,
@@ -596,7 +590,6 @@ public partial class Database : MonoBehaviour
             skillExperience = ((PlayerSkills)player.skills).skillExperience,
             gold = player.gold,
             coins = player.itemMall.coins,
-            gamemaster = player.isGameMaster,
             online = online,
             lastsaved = DateTime.UtcNow
         };
@@ -751,7 +744,7 @@ public partial class Database : MonoBehaviour
 
     //==============================================================================================================================================
     // Models
-
+    #region Tables 
     [Alias("accounts")]
     [Schema(databaseName)]
     public class Account
@@ -763,6 +756,7 @@ public partial class Database : MonoBehaviour
         public DateTime created { get; set; }
         public DateTime lastlogin { get; set; }
         public bool banned { get; set; }
+        // clean
     }
 
     [Alias("characters")]
@@ -776,7 +770,6 @@ public partial class Database : MonoBehaviour
         public string classname { get; set; } // 'class' isn't available in C#
         public float x { get; set; }
         public float y { get; set; }
-        public float z { get; set; }
         public int level { get; set; }
         public int health { get; set; }
         public int mana { get; set; }
@@ -786,13 +779,13 @@ public partial class Database : MonoBehaviour
         public long skillExperience { get; set; } // TODO does long work?
         public long gold { get; set; } // TODO does long work?
         public long coins { get; set; } // TODO does long work?
-        public bool gamemaster { get; set; }
         // online status can be checked from external programs with either just
         // just 'online', or 'online && (DateTime.UtcNow - lastsaved) <= 1min)
         // which is robust to server crashes too.
         public bool online { get; set; }
         public DateTime lastsaved { get; set; }
         public bool deleted { get; set; }
+        //clean
     }
 
     [Alias("character_buffs")]
@@ -804,6 +797,7 @@ public partial class Database : MonoBehaviour
         public string name { get; set; }
         public int level { get; set; }
         public float buffTimeEnd { get; set; }
+        //clean
     }
 
     [Alias("character_guild")]
@@ -824,6 +818,7 @@ public partial class Database : MonoBehaviour
         [Index()]
         public string guild { get; set; }
         public int rank { get; set; }
+        //clean
     }
 
     [Alias("character_inventory")]
@@ -835,16 +830,16 @@ public partial class Database : MonoBehaviour
         public int slot { get; set; }
         public string name { get; set; }
         public int amount { get; set; }
-        public int durability { get; set; }
         public int summonedHealth { get; set; }
         public int summonedLevel { get; set; }
         public long summonedExperience { get; set; }
+        //clean
     }
 
     [Alias("character_equipment")]
     [Schema(databaseName)]
     [CompositeIndex(true, new[] { "character", "slot" })]
-    class CharacterEquipment : CharacterInventory { } // same layout
+    class CharacterEquipment : CharacterInventory { } // same layout //clean
 
     [Alias("character_itemcooldowns")]
     [Schema(databaseName)]
@@ -854,6 +849,7 @@ public partial class Database : MonoBehaviour
         public string character { get; set; }
         public string category { get; set; }
         public float cooldownEnd { get; set; }
+        //clean
     }
 
     [Alias("character_orders")]
@@ -865,6 +861,7 @@ public partial class Database : MonoBehaviour
         public string character { get; set; }
         public long coins { get; set; }
         public bool processed { get; set; }
+        //clean
     }
 
     [Alias("character_quests")]
@@ -876,6 +873,7 @@ public partial class Database : MonoBehaviour
         public string name { get; set; }
         public int progress { get; set; }
         public bool completed { get; set; }
+        //clean
     }
 
     [Alias("character_skills")]
@@ -888,6 +886,7 @@ public partial class Database : MonoBehaviour
         public int level { get; set; }
         public float castTimeEnd { get; set; }
         public float cooldownEnd { get; set; }
+        //clean
     }
 
     [Alias("guild_info")]
@@ -898,5 +897,7 @@ public partial class Database : MonoBehaviour
         [PrimaryKey()] // important for performance: O(log n) instead of O(n)
         public string name { get; set; }
         public string notice { get; set; }
+        //clean
     }
+    #endregion
 }
