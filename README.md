@@ -20,10 +20,15 @@ Send me a tip if you use Brave and you want to give back.
 This is your only warning.
 
 ### 2. Setup MySQL
-We'll be using [docker](https://www.docker.com/) because it's dead simple. 
+Using [docker](https://www.docker.com/) because it's dead simple. 
 1. [Install docker](https://docs.docker.com/install/)
 2. Pull down and run the [MySQL](https://hub.docker.com/_/mysql/) or [MariaDB](https://hub.docker.com/_/mariadb) docker images.  Either will work.
 3. No need to create any schema or tables, the script will auto-generate everything.  Just note down the username/password you passed into the docker container.
+
+Using Xampp
+1. [Install Xampp](https://www.apachefriends.org/index.html)
+2. Start MySQL service
+3. Default user is root with no password needed (make sure to change this when going to production!)
 
 ### 3. Install in your project
 1. Launch Unity and open your project.
